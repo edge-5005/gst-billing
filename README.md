@@ -1,4 +1,4 @@
-# GST Billing Software (Sleek Bill Alternative)
+# GST Billing Software
 
 A complete, professional GST invoicing and billing software built for Indian businesses with **React**, **Node.js/Express**, and **SQLite**.
 
