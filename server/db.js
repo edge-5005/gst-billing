@@ -7,7 +7,41 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const isVercel = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
-const bundledDbPath = path.join(__dirname, 'data', 'gst-billing.sqlite');
+
+// Candidate paths for sql-wasm.wasm
+const possibleWasmPaths = [
+  path.resolve(__dirname, '..', 'node_modules', 'sql.js', 'dist', 'sql-wasm.wasm'),
+  path.resolve(process.cwd(), 'node_modules', 'sql.js', 'dist', 'sql-wasm.wasm'),
+  path.resolve('/var/task', 'node_modules', 'sql.js', 'dist', 'sql-wasm.wasm'),
+];
+
+let wasmBinary = null;
+for (const p of possibleWasmPaths) {
+  if (fs.existsSync(p)) {
+    try {
+      wasmBinary = fs.readFileSync(p);
+      break;
+    } catch (e) {
+      // try next
+    }
+  }
+}
+
+// Candidate paths for bundled database
+const possibleBundledPaths = [
+  path.join(__dirname, 'data', 'gst-billing.sqlite'),
+  path.join(process.cwd(), 'server', 'data', 'gst-billing.sqlite'),
+  path.join('/var/task', 'server', 'data', 'gst-billing.sqlite'),
+];
+
+let bundledDbPath = null;
+for (const p of possibleBundledPaths) {
+  if (fs.existsSync(p)) {
+    bundledDbPath = p;
+    break;
+  }
+}
+
 const dataDir = isVercel ? '/tmp' : path.join(__dirname, 'data');
 const dbPath = path.join(dataDir, 'gst-billing.sqlite');
 
@@ -20,7 +54,7 @@ if (!isVercel && !fs.existsSync(dataDir)) {
 }
 
 // In Vercel serverless environment, copy the pre-seeded SQLite DB into /tmp
-if (isVercel && !fs.existsSync(dbPath) && fs.existsSync(bundledDbPath)) {
+if (isVercel && !fs.existsSync(dbPath) && bundledDbPath) {
   try {
     fs.copyFileSync(bundledDbPath, dbPath);
   } catch (err) {
@@ -28,7 +62,8 @@ if (isVercel && !fs.existsSync(dbPath) && fs.existsSync(bundledDbPath)) {
   }
 }
 
-const SQL = await initSqlJs();
+// Initialize sql.js using pre-loaded wasm binary if available
+const SQL = await initSqlJs(wasmBinary ? { wasmBinary } : {});
 
 let rawDb;
 if (fs.existsSync(dbPath)) {
@@ -38,7 +73,7 @@ if (fs.existsSync(dbPath)) {
   } catch (e) {
     rawDb = new SQL.Database();
   }
-} else if (fs.existsSync(bundledDbPath)) {
+} else if (bundledDbPath) {
   try {
     const fileBuffer = fs.readFileSync(bundledDbPath);
     rawDb = new SQL.Database(fileBuffer);
