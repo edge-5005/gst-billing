@@ -57,41 +57,8 @@ const PAN_CONSTITUTION_MAP = {
   'G': 'Government Department / Agency',
 };
 
-// Known corporate / sample registry database for instant rich lookups
+// Verified corporate registry database for verified public entities
 const KNOWN_GSTIN_REGISTRY = {
-  '33AAACA1234A1Z5': {
-    legal_name: 'Acme Solutions Private Limited',
-    trade_name: 'Acme Solutions',
-    address: '123 Anna Salai, Commercial Hub',
-    city: 'Chennai',
-    state: 'Tamil Nadu',
-    state_code: '33',
-    pincode: '600002',
-    phone: '+91 98765 43210',
-    email: 'info@acmesolutions.com',
-  },
-  '33AABCA1234F1Z9': {
-    legal_name: 'Apex Infotech Solutions Private Limited',
-    trade_name: 'Apex Infotech Solutions',
-    address: 'Suite 402, Technology Towers, Guindy Industrial Estate',
-    city: 'Chennai',
-    state: 'Tamil Nadu',
-    state_code: '33',
-    pincode: '600032',
-    phone: '+91 94441 23456',
-    email: 'accounts@apexinfotech.in',
-  },
-  '33AABCS8899M1Z2': {
-    legal_name: 'Sri Murugan Enterprises',
-    trade_name: 'Sri Murugan Enterprises',
-    address: '45 Mount Road, Thousand Lights',
-    city: 'Chennai',
-    state: 'Tamil Nadu',
-    state_code: '33',
-    pincode: '600002',
-    phone: '+91 98401 12233',
-    email: 'murugan@srient.com',
-  },
   '33AABCT3518Q1ZU': {
     legal_name: 'Zoho Corporation Private Limited',
     trade_name: 'Zoho',
@@ -102,50 +69,6 @@ const KNOWN_GSTIN_REGISTRY = {
     pincode: '603202',
     phone: '+91 44 6744 7000',
     email: 'sales@zohocorp.com',
-  },
-  '29AAACZ7788L1Z6': {
-    legal_name: 'Zenith Systems & Logistics Private Limited',
-    trade_name: 'Zenith Systems',
-    address: '120 Koramangala 4th Block, 80 Feet Road',
-    city: 'Bengaluru',
-    state: 'Karnataka',
-    state_code: '29',
-    pincode: '560034',
-    phone: '+91 98801 99887',
-    email: 'billing@zenithsys.com',
-  },
-  '27AABCM6655P1ZK': {
-    legal_name: 'Maruti Trading Corporation',
-    trade_name: 'Maruti Trading Co',
-    address: '204 Nariman Bhavan, Nariman Point',
-    city: 'Mumbai',
-    state: 'Maharashtra',
-    state_code: '27',
-    pincode: '400021',
-    phone: '+91 98203 34455',
-    email: 'accounts@marutitrading.co.in',
-  },
-  '33AABCS1122K1Z4': {
-    legal_name: 'Supreme Components Hub LLP',
-    trade_name: 'Supreme Components',
-    address: '14 Ritchie Street, Mount Road',
-    city: 'Chennai',
-    state: 'Tamil Nadu',
-    state_code: '33',
-    pincode: '600002',
-    phone: '+91 98409 98811',
-    email: 'sales@supremecomp.in',
-  },
-  '29AAACV4455Q1Z9': {
-    legal_name: 'Vanguard Technology Distributors Private Limited',
-    trade_name: 'Vanguard Tech',
-    address: '78 Electronics City Phase 1, Hosur Road',
-    city: 'Bengaluru',
-    state: 'Karnataka',
-    state_code: '29',
-    pincode: '560100',
-    phone: '+91 98805 56677',
-    email: 'orders@vanguardtech.com',
   },
   '27AAACT2727Q1ZW': {
     legal_name: 'Tata Consultancy Services Limited',
@@ -267,6 +190,7 @@ router.get('/fetch-gstin/:gstin', async (req, res) => {
       const reg = KNOWN_GSTIN_REGISTRY[rawGstin];
       return res.json({
         success: true,
+        is_verified: true,
         source: 'verified_registry',
         gstin: rawGstin,
         legal_name: reg.legal_name,
@@ -290,6 +214,7 @@ router.get('/fetch-gstin/:gstin', async (req, res) => {
     if (localCust) {
       return res.json({
         success: true,
+        is_verified: true,
         source: 'database_record',
         gstin: rawGstin,
         legal_name: localCust.name,
@@ -312,6 +237,7 @@ router.get('/fetch-gstin/:gstin', async (req, res) => {
     if (localSup) {
       return res.json({
         success: true,
+        is_verified: true,
         source: 'database_record',
         gstin: rawGstin,
         legal_name: localSup.name,
@@ -346,6 +272,7 @@ router.get('/fetch-gstin/:gstin', async (req, res) => {
           const d = json.data || {};
           return res.json({
             success: true,
+            is_verified: true,
             source: 'live_gstn_api',
             gstin: rawGstin,
             legal_name: d.legal_name || d.trade_name || '',
@@ -366,105 +293,26 @@ router.get('/fetch-gstin/:gstin', async (req, res) => {
       }
     }
 
-    // 4. Robust intelligent GST extraction & standard taxpayer profile
-    const stateHubs = {
-      '01': { city: 'Srinagar', pincode: '190001' },
-      '02': { city: 'Shimla', pincode: '171001' },
-      '03': { city: 'Ludhiana', pincode: '141001' },
-      '04': { city: 'Chandigarh', pincode: '160017' },
-      '05': { city: 'Dehradun', pincode: '248001' },
-      '06': { city: 'Gurugram', pincode: '122001' },
-      '07': { city: 'New Delhi', pincode: '110001' },
-      '08': { city: 'Jaipur', pincode: '302001' },
-      '09': { city: 'Noida', pincode: '201301' },
-      '10': { city: 'Patna', pincode: '800001' },
-      '11': { city: 'Gangtok', pincode: '737101' },
-      '12': { city: 'Itanagar', pincode: '791111' },
-      '13': { city: 'Kohima', pincode: '797001' },
-      '14': { city: 'Imphal', pincode: '795001' },
-      '15': { city: 'Aizawl', pincode: '796001' },
-      '16': { city: 'Agartala', pincode: '799001' },
-      '17': { city: 'Shillong', pincode: '793001' },
-      '18': { city: 'Guwahati', pincode: '781001' },
-      '19': { city: 'Kolkata', pincode: '700001' },
-      '20': { city: 'Ranchi', pincode: '834001' },
-      '21': { city: 'Bhubaneswar', pincode: '751001' },
-      '22': { city: 'Raipur', pincode: '492001' },
-      '23': { city: 'Indore', pincode: '452001' },
-      '24': { city: 'Ahmedabad', pincode: '380001' },
-      '25': { city: 'Daman', pincode: '396210' },
-      '26': { city: 'Silvassa', pincode: '396230' },
-      '27': { city: 'Mumbai', pincode: '400001' },
-      '28': { city: 'Visakhapatnam', pincode: '530001' },
-      '29': { city: 'Bengaluru', pincode: '560001' },
-      '30': { city: 'Panaji', pincode: '403001' },
-      '31': { city: 'Kavaratti', pincode: '682555' },
-      '32': { city: 'Kochi', pincode: '682001' },
-      '33': { city: 'Chennai', pincode: '600001' },
-      '34': { city: 'Puducherry', pincode: '605001' },
-      '35': { city: 'Port Blair', pincode: '744101' },
-      '36': { city: 'Hyderabad', pincode: '500001' },
-      '37': { city: 'Vijayawada', pincode: '520001' },
-      '38': { city: 'Leh', pincode: '194101' },
-    };
-
-    const hub = stateHubs[stateCode] || { city: 'Central Commercial District', pincode: '100001' };
-
-    // Corporate Name Word Bank mapped by 5th character of PAN (which is standard entity surname/name initial)
-    const NAME_PREFIXES = {
-      'A': 'Apex', 'B': 'Bharath', 'C': 'Crest', 'D': 'Delta', 'E': 'Everest',
-      'F': 'Fortune', 'G': 'Global', 'H': 'Horizon', 'I': 'Indus', 'J': 'Jupiter',
-      'K': 'Kalyan', 'L': 'Lotus', 'M': 'Matrix', 'N': 'Nova', 'O': 'Omega',
-      'P': 'Prime', 'Q': 'Quantum', 'R': 'Reliance', 'S': 'Sri', 'T': 'Trinity',
-      'U': 'United', 'V': 'Vanguard', 'W': 'Western', 'X': 'Xenon', 'Y': 'Yukon', 'Z': 'Zenith'
-    };
-
-    const initialChar = pan.charAt(4) || 'A';
-    const prefix = NAME_PREFIXES[initialChar] || 'Apex';
-
-    let legalName = '';
-    let tradeName = '';
-
-    if (constitutionChar === 'C') {
-      legalName = `${prefix} Technologies Private Limited`;
-      tradeName = `${prefix} Tech`;
-    } else if (constitutionChar === 'P') {
-      legalName = `${prefix} Trading Corporation`;
-      tradeName = `${prefix} Traders`;
-    } else if (constitutionChar === 'F') {
-      legalName = `${prefix} & Associates LLP`;
-      tradeName = `${prefix} Associates`;
-    } else if (constitutionChar === 'T') {
-      legalName = `${prefix} Education & Charitable Trust`;
-      tradeName = `${prefix} Trust`;
-    } else {
-      legalName = `${prefix} Commercial Enterprises`;
-      tradeName = `${prefix} Enterprises`;
-    }
-
-    const panDigits = pan.replace(/\D/g, '') || '101';
-    const streetNumber = panDigits.substring(0, 3) || '42';
-    const phaseNum = panDigits.charAt(panDigits.length - 1) || '1';
-    const address = `Plot No. ${streetNumber}, Phase ${phaseNum} Industrial Area, Commercial Boulevard`;
-
+    // 4. Exact mathematical & statutory GSTIN decoding (100% verified facts only — never fabricates fake names)
     res.json({
       success: true,
-      source: 'gstin_intelligence',
+      is_verified: false,
+      source: 'gstin_structure',
       gstin: rawGstin,
-      legal_name: legalName,
-      trade_name: tradeName,
+      legal_name: '',
+      trade_name: '',
       pan: pan,
       state: stateName,
       state_code: stateCode,
-      address: address,
-      city: hub.city,
-      pincode: hub.pincode,
-      phone: `+91 9${panDigits.padEnd(9, '7').slice(0, 9)}`,
-      email: `contact@${tradeName.toLowerCase().replace(/[^a-z0-9]/g, '')}.in`,
+      address: '',
+      city: '',
+      pincode: '',
+      phone: '',
+      email: '',
       taxpayer_type: 'Regular Taxpayer',
       constitution: constitution,
-      status: 'Active',
-      message: `Verified GSTIN for ${legalName} (${stateName}).`,
+      status: 'Format Validated',
+      message: `GSTIN validated for ${stateName} (${stateCode}). PAN: ${pan} • Constitution: ${constitution}. Enter business name manually or configure a GST API Key for live GSTN lookup.`,
     });
   } catch (err) {
     console.error('Error fetching GST details:', err.message);

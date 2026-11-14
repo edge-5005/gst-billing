@@ -73,7 +73,7 @@ export default function SupplierForm() {
           setTimeout(async () => {
             try {
               const res = await api.get(`/company/fetch-gstin/${clean}`);
-              if (res && res.success) {
+              if (res && res.success && res.is_verified && res.legal_name) {
                 setForm((cur) => ({
                   ...cur,
                   name: cur.name || res.legal_name || res.trade_name,
@@ -83,7 +83,7 @@ export default function SupplierForm() {
                   phone: cur.phone || res.phone,
                   email: cur.email || res.email,
                 }));
-                toast.info(`Auto-filled details for ${res.legal_name || clean}`);
+                toast.info(`Auto-filled verified supplier: ${res.legal_name}`);
               }
             } catch (e) {}
           }, 300);

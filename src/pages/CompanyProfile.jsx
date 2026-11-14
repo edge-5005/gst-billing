@@ -82,7 +82,7 @@ export default function CompanyProfile() {
     }
 
     if (clean.length !== 15) {
-      if (!isAuto) toast.error('GSTIN must be exactly 15 characters (e.g. 33AABCA1234F1Z9)');
+      if (!isAuto) toast.error('GSTIN must be exactly 15 characters (e.g. 33AABCT3518Q1ZU)');
       return;
     }
 
@@ -96,38 +96,47 @@ export default function CompanyProfile() {
       const res = await api.get(`/company/fetch-gstin/${clean}`);
 
       if (res && res.success) {
-        setForm((prev) => ({
-          ...prev,
-          name: res.legal_name || res.trade_name || prev.name,
-          pan: res.pan || prev.pan,
-          state: res.state || prev.state,
-          state_code: res.state_code || prev.state_code,
-          address: res.address || prev.address,
-          city: res.city || prev.city,
-          pincode: res.pincode || prev.pincode,
-          phone: res.phone || prev.phone,
-          email: res.email || prev.email,
-        }));
+        setForm((prev) => {
+          const updated = {
+            ...prev,
+            pan: res.pan || prev.pan,
+            state: res.state || prev.state,
+            state_code: res.state_code || prev.state_code,
+          };
+          // CRITICAL: Only fill company name and address if verified data exists!
+          // NEVER overwrite what the user already typed with empty or unverified data!
+          if (res.is_verified && res.legal_name) {
+            updated.name = res.legal_name;
+            if (res.address) updated.address = res.address;
+            if (res.city) updated.city = res.city;
+            if (res.pincode) updated.pincode = res.pincode;
+            if (res.phone) updated.phone = res.phone;
+            if (res.email) updated.email = res.email;
+          }
+          return updated;
+        });
 
         setGstMeta({
-          legal_name: res.legal_name,
-          trade_name: res.trade_name,
+          legal_name: res.legal_name || '',
+          trade_name: res.trade_name || '',
           constitution: res.constitution,
           status: res.status,
           state: res.state,
           state_code: res.state_code,
+          pan: res.pan,
           source: res.source,
+          is_verified: res.is_verified,
         });
 
-        toast.success(
-          res.legal_name
-            ? `GST Data Fetched: ${res.legal_name}`
-            : `GST Verified for ${res.state} (${res.constitution})!`
-        );
+        if (res.is_verified && res.legal_name) {
+          toast.success(`Verified Business Found: ${res.legal_name}`);
+        } else {
+          toast.info(`GSTIN Validated for ${res.state} (${res.constitution}) • PAN: ${res.pan}`);
+        }
       }
     } catch (err) {
       if (!isAuto) {
-        toast.error(err.message || 'Failed to fetch GST details');
+        toast.error(err.message || 'Failed to validate GSTIN');
       }
     } finally {
       setFetchingGst(false);
@@ -397,12 +406,12 @@ export default function CompanyProfile() {
                     className={`input-field uppercase font-mono tracking-wider ${
                       errors.gstin ? 'border-red-400 focus:ring-red-400' : ''
                     }`}
-                    placeholder="e.g., 33AABCA1234F1Z9"
+                    placeholder="e.g., 33AABCT3518Q1ZU"
                   />
                   {fetchingGst && (
                     <span className="absolute right-3 top-2.5 text-xs font-semibold text-indigo-600 flex items-center gap-1">
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Fetching...
+                      Validating...
                     </span>
                   )}
                   {!fetchingGst && form.gstin?.length === 15 && (
@@ -422,33 +431,37 @@ export default function CompanyProfile() {
                   {fetchingGst ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Fetching GST Data...
+                      Checking GSTIN...
                     </>
                   ) : (
                     <>
                       <Sparkles className="w-4 h-4 text-amber-300" />
-                      Fetch GST Details
+                      Validate / Fetch GST
                     </>
                   )}
                 </button>
               </div>
               {errors.gstin && <p className="text-xs text-red-500 mt-1">{errors.gstin}</p>}
-              <p className="text-xs text-gray-400 mt-1">
-                Enter your 15-digit GSTIN — company details (name, PAN, state, and address) will auto-populate instantly, or click <strong>Fetch GST Details</strong>.
+              <p className="text-xs text-gray-500 mt-1">
+                State, State Code, and PAN are automatically extracted and verified from the GSTIN. Enter your business name below or click <strong>Validate / Fetch GST</strong>.
               </p>
             </div>
 
             {/* GST Verification Banner if metadata fetched */}
             {gstMeta && (
-              <div className="md:col-span-2 p-3 bg-green-50 border border-green-200 rounded-lg text-xs flex items-center justify-between">
+              <div className={`md:col-span-2 p-3 border rounded-lg text-xs flex items-center justify-between ${
+                gstMeta.is_verified ? 'bg-green-50 border-green-200 text-green-900' : 'bg-blue-50 border-blue-200 text-blue-900'
+              }`}>
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+                  <CheckCircle2 className={`w-4 h-4 shrink-0 ${gstMeta.is_verified ? 'text-green-600' : 'text-blue-600'}`} />
                   <div>
-                    <span className="font-bold text-green-900">
-                      GST Registration Verified ({gstMeta.status || 'Active'})
+                    <span className="font-bold">
+                      {gstMeta.is_verified
+                        ? `Verified GST Registration (${gstMeta.legal_name || 'Active'})`
+                        : `GSTIN Format Validated (${gstMeta.state || ''})`}
                     </span>
-                    <span className="text-green-700 ml-2">
-                      • {gstMeta.constitution} • State: {gstMeta.state} ({gstMeta.state_code})
+                    <span className="ml-2">
+                      • {gstMeta.constitution} • State: {gstMeta.state} ({gstMeta.state_code}) • PAN: {gstMeta.pan}
                     </span>
                   </div>
                 </div>

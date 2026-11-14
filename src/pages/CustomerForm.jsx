@@ -101,7 +101,7 @@ export default function CustomerForm() {
           setTimeout(async () => {
             try {
               const res = await api.get(`/company/fetch-gstin/${clean}`);
-              if (res && res.success) {
+              if (res && res.success && res.is_verified && res.legal_name) {
                 setForm((cur) => {
                   const u = {
                     ...cur,
@@ -119,7 +119,7 @@ export default function CustomerForm() {
                   }
                   return u;
                 });
-                toast.info(`Auto-filled details for ${res.legal_name || clean}`);
+                toast.info(`Auto-filled verified customer: ${res.legal_name}`);
               }
             } catch (e) {}
           }, 300);
