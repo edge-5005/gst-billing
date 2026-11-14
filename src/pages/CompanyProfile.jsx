@@ -97,14 +97,32 @@ export default function CompanyProfile() {
 
       if (res && res.success) {
         setForm((prev) => {
+          const isDemoCompany =
+            prev.name.includes('Apex Infotech') ||
+            prev.name.includes('Acme Solutions');
+
           const updated = {
             ...prev,
             pan: res.pan || prev.pan,
             state: res.state || prev.state,
             state_code: res.state_code || prev.state_code,
           };
-          // CRITICAL: Only fill company name and address if verified data exists!
-          // NEVER overwrite what the user already typed with empty or unverified data!
+
+          // If the profile is still holding sample demo data, clear it to prevent mismatched wrong company data
+          if (isDemoCompany && !res.is_verified) {
+            updated.name = '';
+            updated.address = '';
+            updated.city = '';
+            updated.pincode = '';
+            updated.phone = '';
+            updated.email = '';
+            updated.bank_name = '';
+            updated.bank_account = '';
+            updated.bank_ifsc = '';
+            updated.bank_branch = '';
+          }
+
+          // When verified records are returned from registry or live API, populate authentic fields
           if (res.is_verified && res.legal_name) {
             updated.name = res.legal_name;
             if (res.address) updated.address = res.address;
@@ -141,6 +159,16 @@ export default function CompanyProfile() {
     } finally {
       setFetchingGst(false);
     }
+  }
+
+  function handleResetProfile() {
+    setForm({
+      ...initialForm,
+      invoice_prefix: form.invoice_prefix || 'INV',
+    });
+    setGstMeta(null);
+    lastFetchedGstin.current = '';
+    toast.info('Cleared demo data. Enter your company details and click Save.');
   }
 
   function handleChange(e) {
@@ -260,23 +288,35 @@ export default function CompanyProfile() {
           </p>
         </div>
 
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="btn-primary"
-        >
-          {saving ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            <>
-              <Save className="w-4 h-4" />
-              Save Profile
-            </>
-          )}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleResetProfile}
+            className="btn-secondary text-sm"
+            title="Clear demo data and start with a fresh profile"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Clear Demo Data
+          </button>
+
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="btn-primary"
+          >
+            {saving ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                Save Profile
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       <form onSubmit={handleSave} className="space-y-6">
