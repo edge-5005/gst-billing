@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, Link, useLocation } from 'react-router-dom';
+import { api } from '../utils/api';
 import {
   LayoutDashboard,
   Users,
@@ -116,7 +117,20 @@ function getPageTitle(pathname) {
 export default function Layout({ children }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [company, setCompany] = useState(null);
   const location = useLocation();
+
+  useEffect(() => {
+    let isMounted = true;
+    api.get('/company')
+      .then((data) => {
+        if (isMounted && data) setCompany(data);
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, [location.pathname]);
 
   // Close mobile sidebar on route change
   useEffect(() => {
@@ -144,20 +158,38 @@ export default function Layout({ children }) {
 
   const sidebarContent = (
     <div className="flex flex-col h-full bg-gray-900 text-white">
-      {/* Company name */}
-      <div className="flex items-center h-16 px-4 border-b border-gray-700/50 shrink-0">
+      {/* Company name & Logo */}
+      <Link
+        to="/company"
+        className="flex items-center h-16 px-4 border-b border-gray-700/50 shrink-0 hover:bg-gray-800/60 transition group"
+        title="View Company Profile"
+      >
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center shrink-0">
-            <span className="text-white font-bold text-sm">GST</span>
-          </div>
+          {company?.logo_url ? (
+            <img
+              src={company.logo_url}
+              alt={company.name || 'Logo'}
+              className="w-9 h-9 rounded-lg bg-white object-contain p-1 shrink-0 border border-gray-600 shadow-sm"
+            />
+          ) : (
+            <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center shrink-0">
+              <span className="text-white font-bold text-sm">
+                {company?.name ? company.name.substring(0, 2).toUpperCase() : 'GST'}
+              </span>
+            </div>
+          )}
           {!collapsed && (
             <div className="min-w-0">
-              <h1 className="text-sm font-bold truncate">GST Billing</h1>
-              <p className="text-[10px] text-gray-400 truncate">Software</p>
+              <h1 className="text-sm font-bold truncate group-hover:text-blue-300 transition">
+                {company?.name || 'GST Billing'}
+              </h1>
+              <p className="text-[10px] text-gray-400 truncate">
+                {company?.gstin ? `GST: ${company.gstin}` : 'Software'}
+              </p>
             </div>
           )}
         </div>
-      </div>
+      </Link>
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-6 scrollbar-thin">

@@ -413,9 +413,20 @@ db.exec(`
 const companyCount = db.prepare('SELECT COUNT(*) as count FROM company').get();
 if (!companyCount || companyCount.count === 0) {
   db.prepare(`
-    INSERT INTO company (name, gstin, pan, address, city, state, state_code, pincode, phone, email, invoice_prefix)
-    VALUES ('Acme Solutions Pvt Ltd', '33AAACA1234A1Z5', 'AAACA1234A', '123 Anna Salai', 'Chennai', 'Tamil Nadu', '33', '600002', '+91 9876543210', 'info@acmesolutions.com', 'INV')
+    INSERT INTO company (name, gstin, pan, address, city, state, state_code, pincode, phone, email, invoice_prefix, logo_url)
+    VALUES ('Acme Solutions Pvt Ltd', '33AAACA1234A1Z5', 'AAACA1234A', '123 Anna Salai', 'Chennai', 'Tamil Nadu', '33', '600002', '+91 9876543210', 'info@acmesolutions.com', 'INV', '')
   `).run();
+}
+
+// Ensure logo_url column exists for existing SQLite databases
+try {
+  const companyCols = db.prepare('PRAGMA table_info(company)').all();
+  const hasLogoUrl = companyCols.some((col) => col.name === 'logo_url');
+  if (!hasLogoUrl) {
+    db.exec("ALTER TABLE company ADD COLUMN logo_url TEXT DEFAULT ''");
+  }
+} catch (migErr) {
+  // Column already present or migration skipped
 }
 
 export default db;

@@ -139,18 +139,27 @@ export default function PurchaseOrderView() {
       {/* Main Document Card */}
       <div className="card p-8 bg-white border border-gray-200 shadow-sm print:shadow-none print:border-none print:p-0">
         <div className="flex flex-col md:flex-row justify-between pb-6 border-b border-gray-200 gap-6">
-          <div>
-            <h2 className="text-2xl font-bold text-primary-900 mb-1">
-              {company.name || 'Your Company Name'}
-            </h2>
-            <div className="text-sm text-gray-600 space-y-0.5">
-              {company.address && <p>{company.address}</p>}
-              <p>
-                {[company.city, company.state, company.pincode].filter(Boolean).join(', ')}
-              </p>
-              {company.gstin && <p><strong>GSTIN:</strong> {company.gstin}</p>}
-              {company.phone && <p><strong>Phone:</strong> {company.phone}</p>}
-              {company.email && <p><strong>Email:</strong> {company.email}</p>}
+          <div className="flex items-start gap-4">
+            {company.logo_url && (
+              <img
+                src={company.logo_url}
+                alt={company.name || 'Company Logo'}
+                className="max-h-20 max-w-[140px] object-contain rounded border border-gray-200 p-1.5 bg-white shrink-0 shadow-sm"
+              />
+            )}
+            <div>
+              <h2 className="text-2xl font-bold text-primary-900 mb-1">
+                {company.name || 'Your Company Name'}
+              </h2>
+              <div className="text-sm text-gray-600 space-y-0.5">
+                {company.address && <p>{company.address}</p>}
+                <p>
+                  {[company.city, company.state, company.pincode].filter(Boolean).join(', ')}
+                </p>
+                {company.gstin && <p><strong>GSTIN:</strong> {company.gstin}</p>}
+                {company.phone && <p><strong>Phone:</strong> {company.phone}</p>}
+                {company.email && <p><strong>Email:</strong> {company.email}</p>}
+              </div>
             </div>
           </div>
 

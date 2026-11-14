@@ -49,13 +49,40 @@ function buildHeader(company) {
   if (company.email) infoParts.push(`Email: ${company.email}`);
 
   if (infoParts.length > 0) {
-    companyDetails.push({ text: infoParts.join('  |  '), fontSize: 8, color: COLORS.textSecondary, margin: [0, 3, 0, 0], alignment: 'center' });
+    companyDetails.push({ text: infoParts.join('  |  '), fontSize: 8, color: COLORS.textSecondary, margin: [0, 3, 0, 0] });
+  }
+
+  const hasLogo = company.logo_url && (
+    company.logo_url.startsWith('data:image/png') ||
+    company.logo_url.startsWith('data:image/jpeg') ||
+    company.logo_url.startsWith('data:image/jpg')
+  );
+
+  if (hasLogo) {
+    return {
+      columns: [
+        {
+          image: company.logo_url,
+          width: 80,
+          fit: [80, 50],
+          margin: [0, 0, 15, 0],
+        },
+        {
+          stack: [
+            { text: company.name || 'Company Name', fontSize: 16, bold: true, color: COLORS.primary },
+            ...companyDetails,
+          ],
+          width: '*',
+        },
+      ],
+      margin: [0, 0, 0, 10],
+    };
   }
 
   return {
     stack: [
       { text: company.name || 'Company Name', fontSize: 18, bold: true, color: COLORS.primary, alignment: 'center' },
-      ...companyDetails,
+      ...companyDetails.map(d => ({ ...d, alignment: 'center' })),
     ],
     margin: [0, 0, 0, 10],
   };

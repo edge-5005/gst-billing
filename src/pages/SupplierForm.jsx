@@ -56,6 +56,39 @@ export default function SupplierForm() {
       if (name === 'state_code') {
         updated.state = STATE_CODES[value] || '';
       }
+      if (name === 'gstin') {
+        const clean = value.toUpperCase().trim();
+        updated.gstin = clean;
+        if (clean.length >= 10) {
+          updated.pan = clean.substring(2, 12);
+        }
+        if (clean.length >= 2) {
+          const sCode = clean.substring(0, 2);
+          if (STATE_CODES[sCode]) {
+            updated.state_code = sCode;
+            updated.state = STATE_CODES[sCode];
+          }
+        }
+        if (clean.length === 15) {
+          setTimeout(async () => {
+            try {
+              const res = await api.get(`/company/fetch-gstin/${clean}`);
+              if (res && res.success) {
+                setForm((cur) => ({
+                  ...cur,
+                  name: cur.name || res.legal_name || res.trade_name,
+                  address: cur.address || res.address,
+                  city: cur.city || res.city,
+                  pincode: cur.pincode || res.pincode,
+                  phone: cur.phone || res.phone,
+                  email: cur.email || res.email,
+                }));
+                toast.info(`Auto-filled details for ${res.legal_name || clean}`);
+              }
+            } catch (e) {}
+          }, 300);
+        }
+      }
       return updated;
     });
     if (errors[name]) {

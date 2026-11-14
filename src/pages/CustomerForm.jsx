@@ -80,6 +80,52 @@ export default function CustomerForm() {
         updated.shipping_state = STATE_CODES[value] || '';
       }
 
+      if (name === 'gstin') {
+        const clean = value.toUpperCase().trim();
+        updated.gstin = clean;
+        if (clean.length >= 10) {
+          updated.pan = clean.substring(2, 12);
+        }
+        if (clean.length >= 2) {
+          const sCode = clean.substring(0, 2);
+          if (STATE_CODES[sCode]) {
+            updated.billing_state_code = sCode;
+            updated.billing_state = STATE_CODES[sCode];
+            if (sameAsBilling) {
+              updated.shipping_state_code = sCode;
+              updated.shipping_state = STATE_CODES[sCode];
+            }
+          }
+        }
+        if (clean.length === 15) {
+          setTimeout(async () => {
+            try {
+              const res = await api.get(`/company/fetch-gstin/${clean}`);
+              if (res && res.success) {
+                setForm((cur) => {
+                  const u = {
+                    ...cur,
+                    name: cur.name || res.legal_name || res.trade_name,
+                    billing_address: cur.billing_address || res.address,
+                    billing_city: cur.billing_city || res.city,
+                    billing_pincode: cur.billing_pincode || res.pincode,
+                    phone: cur.phone || res.phone,
+                    email: cur.email || res.email,
+                  };
+                  if (sameAsBilling) {
+                    u.shipping_address = u.billing_address;
+                    u.shipping_city = u.billing_city;
+                    u.shipping_pincode = u.billing_pincode;
+                  }
+                  return u;
+                });
+                toast.info(`Auto-filled details for ${res.legal_name || clean}`);
+              }
+            } catch (e) {}
+          }, 300);
+        }
+      }
+
       if (sameAsBilling && name.startsWith('billing_')) {
         const shippingField = name.replace('billing_', 'shipping_');
         updated[shippingField] = updated[name];
