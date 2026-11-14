@@ -36,6 +36,7 @@ const initialForm = {
   bank_branch: '',
   invoice_prefix: 'INV',
   logo_url: '',
+  gst_api_key: '',
 };
 
 export default function CompanyProfile() {
@@ -46,6 +47,7 @@ export default function CompanyProfile() {
   const [gstMeta, setGstMeta] = useState(null);
   const [errors, setErrors] = useState({});
   const fileInputRef = useRef(null);
+  const nameInputRef = useRef(null);
   const lastFetchedGstin = useRef('');
 
   useEffect(() => {
@@ -149,7 +151,12 @@ export default function CompanyProfile() {
         if (res.is_verified && res.legal_name) {
           toast.success(`Verified Business Found: ${res.legal_name}`);
         } else {
-          toast.info(`GSTIN Validated for ${res.state} (${res.constitution}) • PAN: ${res.pan}`);
+          toast.info(
+            `GSTIN Validated (${res.state} • ${res.constitution}). Please enter your business name below.`
+          );
+          if (nameInputRef.current && !form.name) {
+            setTimeout(() => nameInputRef.current?.focus(), 150);
+          }
         }
       }
     } catch (err) {
@@ -489,20 +496,25 @@ export default function CompanyProfile() {
 
             {/* GST Verification Banner if metadata fetched */}
             {gstMeta && (
-              <div className={`md:col-span-2 p-3 border rounded-lg text-xs flex items-center justify-between ${
+              <div className={`md:col-span-2 p-3.5 border rounded-lg text-xs ${
                 gstMeta.is_verified ? 'bg-green-50 border-green-200 text-green-900' : 'bg-blue-50 border-blue-200 text-blue-900'
               }`}>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className={`w-4 h-4 shrink-0 ${gstMeta.is_verified ? 'text-green-600' : 'text-blue-600'}`} />
-                  <div>
-                    <span className="font-bold">
+                <div className="flex items-start gap-2.5">
+                  <CheckCircle2 className={`w-4 h-4 shrink-0 mt-0.5 ${gstMeta.is_verified ? 'text-green-600' : 'text-blue-600'}`} />
+                  <div className="space-y-1">
+                    <div className="font-bold">
                       {gstMeta.is_verified
-                        ? `Verified GST Registration (${gstMeta.legal_name || 'Active'})`
-                        : `GSTIN Format Validated (${gstMeta.state || ''})`}
-                    </span>
-                    <span className="ml-2">
-                      • {gstMeta.constitution} • State: {gstMeta.state} ({gstMeta.state_code}) • PAN: {gstMeta.pan}
-                    </span>
+                        ? `Verified Legal Business: ${gstMeta.legal_name || 'Active'}`
+                        : `GSTIN Format Validated: ${gstMeta.state || ''} (${gstMeta.state_code})`}
+                    </div>
+                    <p className="text-gray-600">
+                      • State: <strong>{gstMeta.state} ({gstMeta.state_code})</strong> • PAN: <strong>{gstMeta.pan}</strong> • Entity: <strong>{gstMeta.constitution}</strong>
+                    </p>
+                    {!gstMeta.is_verified && (
+                      <p className="text-blue-800 text-[11px] pt-0.5">
+                        State, PAN, and Constitution have been decoded. Enter your <strong>Company Name</strong> below, or connect a free GST API Key under <em>GST Integration Settings</em> to fetch directly from the live GST portal.
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -514,14 +526,18 @@ export default function CompanyProfile() {
                 Company / Business Name <span className="text-red-500">*</span>
               </label>
               <input
+                ref={nameInputRef}
                 type="text"
                 name="name"
                 value={form.name}
                 onChange={handleChange}
                 className={`input-field ${errors.name ? 'border-red-400 focus:ring-red-400' : ''}`}
-                placeholder="Enter company name"
+                placeholder="Enter your registered company or trade name"
               />
               {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
+              <p className="text-[11px] text-gray-400 mt-0.5">
+                This business name will appear at the top of all your invoices, estimates, and tax reports.
+              </p>
             </div>
 
             <div>
@@ -695,6 +711,42 @@ export default function CompanyProfile() {
                 className="input-field"
                 placeholder="Enter branch name"
               />
+            </div>
+          </div>
+        </div>
+
+        {/* Live GST API Integration Card */}
+        <div className="card border-l-4 border-l-indigo-600">
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles className="w-5 h-5 text-indigo-600" />
+            <h2 className="text-base font-semibold text-gray-800">Live GST Portal Integration (Optional)</h2>
+          </div>
+          <p className="text-xs text-gray-500 mb-3">
+            In India, querying the live government GSTN portal for any arbitrary company name requires a GST API key from an authorized GSP provider (e.g. GSTINAPI.in or Sandbox.co.in). Once saved, every new GST number entered will auto-fetch its official legal name and address live from the government portal.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                GSTIN API Key {form.gst_api_key ? '✓ Connected' : '(Optional)'}
+              </label>
+              <input
+                type="password"
+                name="gst_api_key"
+                value={form.gst_api_key || ''}
+                onChange={handleChange}
+                placeholder="Paste your GSTIN API key here"
+                className="input-field text-xs font-mono"
+              />
+            </div>
+            <div className="flex items-end">
+              <a
+                href="https://www.gstinapi.in"
+                target="_blank"
+                rel="noreferrer"
+                className="btn-secondary text-xs w-full justify-center py-2.5"
+              >
+                Get Free API Key ↗
+              </a>
             </div>
           </div>
         </div>

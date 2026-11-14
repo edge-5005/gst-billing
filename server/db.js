@@ -418,15 +418,17 @@ if (!companyCount || companyCount.count === 0) {
   `).run();
 }
 
-// Ensure logo_url column exists for existing SQLite databases
+// Ensure logo_url and gst_api_key columns exist for existing SQLite databases
 try {
   const companyCols = db.prepare('PRAGMA table_info(company)').all();
-  const hasLogoUrl = companyCols.some((col) => col.name === 'logo_url');
-  if (!hasLogoUrl) {
+  if (!companyCols.some((col) => col.name === 'logo_url')) {
     db.exec("ALTER TABLE company ADD COLUMN logo_url TEXT DEFAULT ''");
   }
+  if (!companyCols.some((col) => col.name === 'gst_api_key')) {
+    db.exec("ALTER TABLE company ADD COLUMN gst_api_key TEXT DEFAULT ''");
+  }
 } catch (migErr) {
-  // Column already present or migration skipped
+  // Columns already present or migration skipped
 }
 
 export default db;
